@@ -1,17 +1,20 @@
-# 数学
+# LeetCode
 
-- [数学](#数学)
-  - [进制](#进制)
+- [LeetCode](#leetcode)
+  - [数学](#数学)
     - [二进制小数的表示](#二进制小数的表示)
   - [数组](#数组)
     - [删除部分元素使数组有序](#删除部分元素使数组有序)
       - [双指针 + 二分](#双指针--二分)
       - [双指针](#双指针)
+    - [数据结构应用题](#数据结构应用题)
   - [字符串](#字符串)
-    - [字符串的通用思路](#字符串的通用思路)
+    - [子串思考的通用思路](#子串思考的通用思路)
+    - [回文字符串](#回文字符串)
+  - [二叉树](#二叉树)
 
 
-## 进制
+## 数学
 
 ### 二进制小数的表示
 
@@ -263,9 +266,58 @@ public:
 
 ---
 
+### 数据结构应用题
+
+原题链接：[846. 一手顺子](https://leetcode.cn/problems/hand-of-straights/)
+
+出于便利，我们用 $m$ 代替 $groupSize$
+
+只要 $hand$ 和 $m$ 唯一给定，那么划分的方式也就确定了，因此本题实质上是**模拟**的过程
+
+在这里我们用「哈希表」来对每个数进行频率统计，之后**从小到大**枚举每个数
+
+设当前枚举数为 $t$ ，我们考虑以 $t$ 为**左端点**的序列
+
+如果序列 $t,t+1,t+2,\cdots, t+m-1$ 当中的任意一个数均在哈希表中出现过，则将对应数的出现频率减一
+
+这个过程中，只要出现有某个数出现频率变为负数，说明发生冲突，直接返回 `false`
+
+而对于当前枚举的左端点 $t$ ，如果其在哈希表中对应值为 $0$ ，表明当前数已经与前面的数相匹配，直接跳过
+
+由于我们每次都需要取当前的较小值，因此考虑用「小根堆」解决
+
+完整代码如下：
+
+```cpp
+class Solution {
+public:
+    bool isNStraightHand(vector<int>& hand, int groupSize) 
+    {
+        if(hand.size() % groupSize) return false;
+        unordered_map<int, int>hash;
+        priority_queue<int, vector<int>, greater<int>>heap;
+        for(int x : hand) hash[x]++, heap.push(x);
+        while(heap.size())
+        {
+            int t = heap.top();
+            heap.pop();
+            if(hash[t] == 0) continue;
+            for(int i = 0; i < groupSize; i ++)
+            {
+                hash[t + i]--;
+                if(hash[t + i] < 0) return false;                
+            }
+        }
+        return true;
+    }
+};
+```
+
+---
+
 ## 字符串
 
-### 字符串的通用思路
+### 子串思考的通用思路
 
 [LeetCode 1638. 统计只差一个字符的子串数目](https://leetcode.cn/problems/count-substrings-that-differ-by-one-character/)
 
@@ -314,3 +366,97 @@ public:
 ```
 
 时间复杂度：$O((n+m)\min(n,m))=O(nm)$
+
+
+### 回文字符串
+
+原题链接：[1400. 构造 K 个回文字符串](https://leetcode.cn/problems/construct-k-palindrome-strings/)
+
+对于回文字符串有一个结论：对于长度为 $n$ 的回文字符串，一定可以分解为**个数或长度**为 $d,\ d\in[1,n]$ 的回文字符串
+
+我们考虑回文字符串的组成，必然有两种可能：
+
+* 长度为奇数，其中心为**一个字符**
+* 长度为偶数，其中心为**两个相等字符**
+
+我们随意取一个回文字符串 `abcdfdcba` ，我们去掉中心字符，得到 `abcddcba` 和 `f` ，进一步，我们对 `abcddcba` 进行拆分，有：`abccba`，`dd`，`f`
+
+这个过程可以持续下去，我们可以得到一个结论：
+
+对于一个长度为 $n$ 的回文字符串，对其拆分必然可以得到个数为 $1,2,3,\cdots,n$ 的回文字符串同时也可以得到长度为 $1,2,3,\cdots,n$ 的回文字符串
+
+回到本题，对于字符串 `s` ，如果我们求出其能表示出的**最少回文字符串 $l$ **和**最多回文字符串 $r$** ，那么只要 $k$ 处于 $[l,r]$ 内，必然是符合条件
+
+设 `s` 中有 $p$ 个字符出现了奇数次，有 $q$ 个字符出现了偶数次，那么 `s` 所能构成的回文字符串的个数最小值是多少？
+
+对于出现偶数次的字符，我们可以任意组合，但对于出现奇数次的字符，我们需要保证其**必须处于一个回文字符串的中心**，因此这最少能表示的字符个数为 $p$
+
+特别地，如果如果 $p==0$ ，表明全部由偶数个字符组成，此时个数为 $1$ ，因此总体为 $\max(p,1)$
+
+完整代码如下：
+
+```cpp
+class Solution {
+public:
+    bool canConstruct(string s, int k) 
+    {
+        unordered_map<char, int>hash;
+        for(char c : s) hash[c]++;
+        int cnt = 0, tot = s.length();
+        for(auto p : hash)
+            if(p.second & 1) cnt++;
+        return k >= max(cnt, 1) && k <= tot;
+    }
+};
+```
+
+---
+
+## 二叉树
+
+原题链接：[1110. 删点成林](https://leetcode.cn/problems/delete-nodes-and-return-forest/)
+
+我们考虑如果要将一个节点加入答案数组需要满足什么条件：
+
+* 当前点不能有父节点
+* 当前点不在 `to_delete` 中
+* 当前点的左右子树均处理完毕
+
+我们根据这三个条件着手设计递归函数
+
+基于前两点，我们需要用 $u$ 来表示当前递归到的节点，用 $has\_father$ 来表示当前节点是否有父节点
+
+在返回值部分，我们需要**根据当前节点的左孩子与右孩子是否被删除来判断是否需要对当前节点进行更改**，因此需要用 `bool` 作为返回类型
+
+意思是说，如果当前节点的左孩子需要被删除，那么我们需要将当前节点的左孩子置空，这对于右孩子也是一样
+
+基于此设计，在返回时我们需要**返回当前节点是否会被删除**
+
+在代码实现上，考虑去重可以直接用哈希表
+
+```cpp
+class Solution {
+public:
+    vector<TreeNode*> delNodes(TreeNode* root, vector<int>& to_delete) 
+    {
+        unordered_set<int>hash(to_delete.begin(), to_delete.end());
+        vector<TreeNode*>ans;
+        function<bool(TreeNode*, bool)> dfs = [&](TreeNode* u, bool has_father) -> bool
+        {
+            //当前节点为nullptr，直接返回true
+            if(!u) return true;
+            bool is_delete = hash.count(u->val);//为true表示当前节点需要删除
+            if(dfs(u->left, !is_delete))
+                u->left = nullptr;
+            if(dfs(u->right, !is_delete))
+                u->right = nullptr;
+            //当前节点不能被删除且没有父节点
+            if(!has_father && !is_delete)
+                ans.push_back(u);
+            return is_delete;
+        };
+        dfs(root, false);
+        return ans;
+    }
+};
+```
