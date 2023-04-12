@@ -1,8 +1,13 @@
 # LeetCode
 
 - [LeetCode](#leetcode)
-  - [数学](#数学)
+  - [数学相关](#数学相关)
     - [二进制小数的表示](#二进制小数的表示)
+  - [位运算](#位运算)
+  - [排列相关](#排列相关)
+    - [贪心](#贪心)
+    - [树状数组](#树状数组)
+    - [基于排列性质](#基于排列性质)
   - [数组](#数组)
     - [删除部分元素使数组有序](#删除部分元素使数组有序)
       - [双指针 + 二分](#双指针--二分)
@@ -14,7 +19,7 @@
   - [二叉树](#二叉树)
 
 
-## 数学
+## 数学相关
 
 ### 二进制小数的表示
 
@@ -89,6 +94,140 @@ public:
     }
 };
 ```
+
+---
+
+## 位运算
+
+下面给出常用位运算技巧：
+
+我们用一个二进制数来表示一个集合，那么有：
+
+1. 将 $x$ 变为集合：`1 << x`
+2. 判断 $x$ 是否在集合 $A$ 中：`((A >> x) & 1) == 1`
+3. 计算两个集合 $A,B$ 的并集 $A\cup B$：`A | B`
+4. 计算 $A\setminus B$，表示从集合 $A$ 中去掉集合 $B$ 中的元素：`A & ~B` 。例如 `110 & ~11 = 100`
+5. 得到全集 $U=\{ 0,1,2,\cdots, n - 1 \}$：`(1 << n) - 1`
+
+---
+
+## 排列相关
+
+原题链接：[775. 全局倒置与局部倒置](https://leetcode.cn/problems/global-and-local-inversions/)
+
+整理一下题意，对于满足 $nums[i]\gt nums[j],i<j$ 的逆序对称为全局倒置；对于满足 $nums[i]\gt nums[i+1]$ 的逆序对称为局部倒置
+
+如果全局倒置的数量**等于**局部倒置的数量，则返回 `true`
+
+### 贪心
+
+注意到局部倒置的数量为全局倒置数量的**子集**，也就是说如果我们统计所有满足「属于全局倒置而不属于局部倒置」的逆序对，只要这个结果为 $0$ ，就表明全局倒置和局部倒置的数量相等
+
+如果当前值比满足「属于全局倒置而不属于局部倒置」后缀的最小值要大，那么说明必然不符合题意
+
+也就是说，我们需要从 $n-3$ 开始枚举，而后缀最小值从 $n-1$ 开始维护，每次用 $i+1$ 来进行更新
+
+完整代码如下：
+
+```cpp
+class Solution {
+public:
+    bool isIdealPermutation(vector<int>& nums) 
+    {
+        int n = nums.size();        
+        int mn = nums[n - 1];
+        for(int i = n - 3; i >= 0; i --)
+        {
+            if(nums[i] > mn) return false;
+            mn = min(mn, nums[i + 1]);
+        }
+        return true;
+    }
+};
+```
+
+时间复杂度：$O(n)$
+
+### 树状数组
+
+对于 $x$ ，我们需要求出前面所有比其大的数的个数，这恰好可以用树状数组（前缀和）来实现
+
+我们以**元素值为下标**，数组对应值表示该元素出现的**次数**，对于 $x$ 而言，所有比其小的数的个数为 $\sum_{i=1}^{x-1}s_i$
+
+完整代码如下：
+
+```cpp
+class Solution {
+public:
+
+    static const int N = 1e5 + 10;
+    int n;
+    int tr[N];
+    int lowbit(int x)
+    {
+        return x & -x;
+    }
+    void add(int x, int c)
+    {
+        for(int i = x; i <= n; i += lowbit(i))
+            tr[i] += c;
+    }
+    int query(int x)
+    {
+        int ans = 0;
+        for(int i = x; i > 0; i -= lowbit(i))
+            ans += tr[i];
+        return ans;
+    }
+    bool isIdealPermutation(vector<int>& nums) 
+    {
+        n = nums.size();        
+        memset(tr, 0, sizeof tr);
+        add(nums[0] + 1, 1);
+        long a = 0, b = 0;
+        for(int i = 1; i < n; i ++)
+        {
+            int v = nums[i] + 1;
+            a += query(n) - query(v);
+            b += nums[i] < nums[i - 1] ? 1 : 0;
+            add(v, 1);
+        }
+        return a == b;
+    }
+};
+```
+
+时间复杂度：$O(n\log n)$ ，树状数组的插入和查询均为 $O(\log n)$
+
+### 基于排列性质
+
+由于整个数组是一个从 $0\sim n-1$ 的排列，因此对于每个数组元素，将整个数组排序后都有与其**唯一对应**的位置（也就是以**元素下标**）
+
+具体地，对于排列 $[3,4,0,2,1]$ ，有：
+
+$3$ 应当放在下标为 $3$ 的位置，$4$ 应当放在下标为 $4$ 的位置，$0$ 应当放在下标为 $0$ 的位置，$2$ 应当放在下标为 $2$ 的位置，$1$ 应当放在下标为 $1$ 的位置
+
+回到本题，对于元素 $nums[i]$ 而言，其应当放在位置 $i$ ，如果我们期望由 $nums[i]$ 构成的逆序对满足「属于全局倒置而不属于局部倒置」，这就要求 **$nums[i]$ 距离 $i$ 不能超过 $1$**，也就是不能超过局部倒置的范围，即：
+
+$$
+|nums[i]-i|\le 1
+$$
+
+所以我们可以对每个数依次判断它与对应位置的距离，完整代码如下：
+
+```cpp
+class Solution {
+public:
+    bool isIdealPermutation(vector<int>& nums) 
+    {
+        for(int i = 0; i < nums.size(); i ++)
+            if(abs(nums[i] - i) >= 2) return false;
+        return true;
+    }
+};
+```
+
+---
 
 ## 数组
 
