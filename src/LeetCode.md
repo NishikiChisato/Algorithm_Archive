@@ -1,22 +1,33 @@
 # LeetCode
 
 - [LeetCode](#leetcode)
+  - [索引](#索引)
   - [数学相关](#数学相关)
     - [二进制小数的表示](#二进制小数的表示)
   - [位运算](#位运算)
   - [排列相关](#排列相关)
-    - [贪心](#贪心)
-    - [树状数组](#树状数组)
-    - [基于排列性质](#基于排列性质)
+    - [求全局 \& 局部倒置对数量](#求全局--局部倒置对数量)
+      - [贪心](#贪心)
+      - [树状数组](#树状数组)
+      - [基于排列性质](#基于排列性质)
   - [数组](#数组)
     - [删除部分元素使数组有序](#删除部分元素使数组有序)
       - [双指针 + 二分](#双指针--二分)
       - [双指针](#双指针)
-    - [数据结构应用题](#数据结构应用题)
+    - [快速求出数组元素到某个值的距离](#快速求出数组元素到某个值的距离)
+      - [前缀和 + 二分](#前缀和--二分)
+    - [考虑距离和的增量](#考虑距离和的增量)
+      - [前缀和](#前缀和)
+      - [贪心](#贪心-1)
+  - [数据结构应用题](#数据结构应用题)
   - [字符串](#字符串)
     - [子串思考的通用思路](#子串思考的通用思路)
     - [回文字符串](#回文字符串)
   - [二叉树](#二叉树)
+
+## 索引
+
+[快速求出数组元素到某个值的距离](#快速求出数组元素到某个值的距离)——[LeetCode 2602. 使数组元素全部相等的最少操作次数](https://leetcode.cn/problems/minimum-operations-to-make-all-array-elements-equal/)
 
 
 ## 数学相关
@@ -113,13 +124,15 @@ public:
 
 ## 排列相关
 
-原题链接：[775. 全局倒置与局部倒置](https://leetcode.cn/problems/global-and-local-inversions/)
+### 求全局 & 局部倒置对数量
+
+原题链接：[LeetCode 775. 全局倒置与局部倒置](https://leetcode.cn/problems/global-and-local-inversions/)
 
 整理一下题意，对于满足 $nums[i]\gt nums[j],i<j$ 的逆序对称为全局倒置；对于满足 $nums[i]\gt nums[i+1]$ 的逆序对称为局部倒置
 
 如果全局倒置的数量**等于**局部倒置的数量，则返回 `true`
 
-### 贪心
+#### 贪心
 
 注意到局部倒置的数量为全局倒置数量的**子集**，也就是说如果我们统计所有满足「属于全局倒置而不属于局部倒置」的逆序对，只要这个结果为 $0$ ，就表明全局倒置和局部倒置的数量相等
 
@@ -148,7 +161,7 @@ public:
 
 时间复杂度：$O(n)$
 
-### 树状数组
+#### 树状数组
 
 对于 $x$ ，我们需要求出前面所有比其大的数的个数，这恰好可以用树状数组（前缀和）来实现
 
@@ -199,7 +212,7 @@ public:
 
 时间复杂度：$O(n\log n)$ ，树状数组的插入和查询均为 $O(\log n)$
 
-### 基于排列性质
+#### 基于排列性质
 
 由于整个数组是一个从 $0\sim n-1$ 的排列，因此对于每个数组元素，将整个数组排序后都有与其**唯一对应**的位置（也就是以**元素下标**）
 
@@ -402,10 +415,145 @@ public:
     }
 };
 ```
+---
+
+### 快速求出数组元素到某个值的距离
+
+原题链接：[LeetCode 2602. 使数组元素全部相等的最少操作次数](https://leetcode.cn/problems/minimum-operations-to-make-all-array-elements-equal/)
+
+#### 前缀和 + 二分
+
+将 $nums[i]$ 中的元素全部变为 $q$ ，相当于求 **$nums[i]$ 中每个元素到 $q$ 的距离**
+
+由于 $nums[i]$ 的顺序与最终结果无关，因此可以先对其**排序**
+
+此后我们二分，找到第一个**大于等于** $q$ 的数的下标 $k$ ，此时左边 $\lt q$，右边 $\ge q$
+
+然后我们从面积的角度来考虑，左边的距离和为：$q$ 对应面积减去元素面积；右边距离和为：元素面积减去 $q$ 对应面积，即：
+
+$$
+\begin{align*}
+l&=k\times q-s[k]\\
+r&=(s[n]-s[k])-(n-k)\times q
+\end{align*}
+$$
+
+完整代码如下：
+
+```cpp
+class Solution {
+public:
+    vector<long long> minOperations(vector<int>& nums, vector<int>& queries) 
+    {
+        sort(nums.begin(), nums.end());
+        int n = nums.size(), m = queries.size();
+        vector<long long>s(n + 1, 0);
+        for(int i = 1; i <= n; i ++)
+            s[i] = s[i - 1] + nums[i - 1];
+        vector<long long>ans(m);
+        for(int i = 0; i < m; i ++)
+        {
+            long long k = lower_bound(nums.begin(), nums.end(), queries[i]) - nums.begin();
+            long long l = k * queries[i] - s[k];
+            long long r = (s[n] - s[k]) - (n - k) * queries[i];
+            ans[i] = l + r;
+        }
+        return ans;
+    }
+};
+```
+时间复杂度：$O(n\log n)$
+
+### 考虑距离和的增量
+
+[LeetCode 2615. 等值距离和](https://leetcode.cn/problems/sum-of-distances/)
+
+#### 前缀和
+
+我们先对**所有相同元素的下标进行分组**，之后再单独考虑每个组内部的情况
+
+对于某个组 $q$ ，其每个元素均为下标，我们需要求**每个元素到其余元素的距离之和**，那么本题与上一题就一样了
+
+完整代码如下：
+
+```cpp
+class Solution {
+public:
+    vector<long long> distance(vector<int>& nums) 
+    {
+        int n = nums.size();
+        unordered_map<int, vector<int>>hash;
+        for(int i = 0; i < n; i ++)
+            hash[nums[i]].push_back(i);
+        vector<long long>s(n + 1, 0), ans(n);
+        for(auto& [_, q] : hash)
+        {
+            int m = q.size();
+            for(int i = 1; i <= m; i ++)
+                s[i] = s[i - 1] + q[i - 1];
+            for(int i = 0; i < m; i ++)
+            {
+                long long v = q[i];
+                long long l = i * v - s[i];
+                long long r = s[m] - s[i] - v * (m - i);
+                ans[v] = l + r;
+            }
+        }
+        return ans;
+    }
+};
+```
+
+时间复杂度：$O(n)$ ，由于数组 $q$ 本身有序且每次求的 $v$ 均为数组元素，因此不需要二分
+
+#### 贪心
+
+设数组 $q$ 长度为 $n$ ，下标从 $0$ 开始，$s_i$ 表示下标 $i$ 对应元素到其余元素的距离
+
+假设当前已经求出了 $s_0$ ，我们考虑 $s_1$ 与 $s_0$ 之间的关系：
+
+从 $q_0$ 到 $q_1$ ，有 **$1$ 个**元素增大了 $q_1-q_0$ ，$n-1$ 个元素减小了 $q_1-q_0$ ，即：$s_1=s_0+(q_1-q_0)-(n-1)(q_1-q_0)$
+
+更一般地，$s_i$ 与 $s_{i-1}$ 之间，有 $i$ 个元素增大了 $q_i-q_{i-1}$ ，有 $n-i$ 个元素减小了 $q_i-q_{i-1}$，即：
+
+$$
+\begin{align*}
+s_i&=s_{i-1}+i\times (q_i-q_{i-1})-(n-i)\times (q_i-q_{i-1})\\
+&=s_{i-1}+(2i-n)\times(q_i-q_{i-1})
+\end{align*}
+$$
+
+在代码实现上，我们先求出 $s_0$ ，然后不断更新 $s_i$ 即可
+
+完整代码如下：
+
+```cpp
+class Solution {
+public:
+    vector<long long> distance(vector<int>& nums) 
+    {
+        int n = nums.size();
+        unordered_map<int, vector<int>>hash;
+        for(int i = 0; i < n; i ++)
+            hash[nums[i]].push_back(i);
+        vector<long long>ans(n);
+        for(auto& [_, q] : hash)
+        {
+            int m = q.size();
+            long long s = 0;
+            for(int i = 0; i < m; i ++) s += (q[i] - q[0]);
+            ans[q[0]] = s;
+            for(int i = 1; i < m; i ++)
+                ans[q[i]] = s += (long long)(2 * i - m) * (q[i] - q[i - 1]);
+        }
+        return ans;
+    }
+};
+```
 
 ---
 
-### 数据结构应用题
+## 数据结构应用题
 
 原题链接：[846. 一手顺子](https://leetcode.cn/problems/hand-of-straights/)
 
