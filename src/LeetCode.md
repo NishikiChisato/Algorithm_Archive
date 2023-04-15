@@ -1,7 +1,7 @@
 ---
-title: LeetCode 相关
-tags: 总结
-categories: Algorithm Solution
+title: LeetCode
+tags: Algorithm Archiv
+categories: Algorithm Archiv
 ---
 
 # LeetCode
