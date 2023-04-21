@@ -1,9 +1,3 @@
----
-title: LeetCode
-tags: Algorithm Archiv
-categories: Algorithm Archiv
----
-
 # LeetCode
 
 - [LeetCode](#leetcode)
