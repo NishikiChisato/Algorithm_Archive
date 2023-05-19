@@ -7,3 +7,14 @@
 * `LeetCode-AcWing` 当中按照大章节分类，较为基础，题目来自 $Leetcode$ 和 $Acwing$
 * `Codeforces` 当中按照技巧分类，题目来自 $Codeforces$
 
+## 文件结构
+
+```
+├─Codeforces
+└─LeetCode-AcWing
+    ├─img
+    │  ├─动态规划
+    │  ├─图论
+    │  └─数据结构
+    └─src
+```
